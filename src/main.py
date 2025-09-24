@@ -1,6 +1,7 @@
-from utils import webscrape
-from consts import BASEURL
+from utils import scrapeChainInfo, scrapeEntireChain, plotIvCurve
+from consts import DIRS, BASEURL, URLP2
 import sys
+import os
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -15,5 +16,14 @@ if __name__ == "__main__":
         print(f"src/main.py :: Must enter at most 4 characters, you entered {sys.argv[1]}")
         sys.exit(1)
 
+    for dir in DIRS:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
     ticker = sys.argv[1].upper()
-    webscrape(f"{BASEURL}{ticker}/", f"data/{ticker}.csv")
+
+    scrapeChainInfo(f"{BASEURL}{ticker}", ticker, f"data/{ticker}.csv")
+
+    scrapeEntireChain(f"{BASEURL}{ticker}{URLP2}", ticker, f"data/{ticker}chain.csv")
+    
+    plotIvCurve(f"data/{ticker}.csv", f"img/{ticker}.png")
