@@ -1,4 +1,4 @@
-from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, FEDFUNDS
+from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, FEDFUNDS, MODES
 import os
 import sys
 import csv
@@ -38,19 +38,36 @@ class OptionContract:
         self.iscall = cp_flag
         self.iv = 0.000001
         if self.iscall:
-            self.iv = implied_volatility_call(self.midprice, self.underlying_price, self.strike, self.yte)
+            self.iv = implied_volatility_call(self.midprice, self.underlying_price, self.strike, self.yte, FEDFUNDS)
         else:
-            self.iv = implied_volatility_put(self.midprice, self.underlying_price, self.strike, self.yte)
-
+            self.iv = implied_volatility_put(self.midprice, self.underlying_price, self.strike, self.yte, FEDFUNDS)
+        self.delta = getDelta(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
+        self.gamma = getGamma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.vega = getVega(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.theta = getTheta(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
+        self.rho = getRho(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
+        self.charm = getCharm(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
+        self.vanna = getVanna(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.vomma = getVomma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.veta  = getVeta(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.speed = getSpeed(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.zomma = getZomma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.color = getColor(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.ultima = getUltima(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
 
     def __repr__(self):
         return (
-            f"OptionContract("
-            f"underlying='{self.underlying}', "
-            f"strike={self.strike}, "
-            f"type='{"Call" if self.iscall else "Put"}', "
-            f"midprice={self.midprice}, "
-            f"yte={self.yte:.4f})"
+            f"<OptionContract {self.underlying} "
+            f"{'Call' if self.iscall else 'Put'} "
+            f"Strike={self.strike:.2f} "
+            f"Mid={self.midprice:.2f} "
+            f"YtE={self.yte:.4f}>\n"
+            f"  IV={self.iv:.4f} | Δ={self.delta:.4f} | Γ={self.gamma:.6f} | "
+            f"V={self.vega:.4f} | Θ={self.theta:.4f} | ρ={self.rho:.4f}\n"
+            f"  Charm={self.charm:.6f} | Vanna={self.vanna:.6f} | Vomma={self.vomma:.6f} | "
+            f"Veta={self.veta:.6f}\n"
+            f"  Speed={self.speed:.6f} | Zomma={self.zomma:.6f} | Color={self.color:.6f} | "
+            f"Ultima={self.ultima:.6f}>"
         )
 
 
@@ -84,8 +101,122 @@ class OptionChain:
             f"expiries={len(self.expiries)}, "
             f"dates={expiry_dates})"
         )
+    
+def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
+    if sigma == 0 or T == 0:
+        return max(0.0, S - K)
+    d1 = (math.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    return S * norm.cdf(d1) - K * math.exp(-r*T) * norm.cdf(d2)
 
-def scrapeChainInfo(url, ticker, csvname):
+def implied_volatility_call(C_market, S, K, T, r=FEDFUNDS):
+    # Define function whose root is the implied volatility
+    f = lambda sigma: bs_call_price(S, K, T, r, sigma) - C_market
+    # Use Brent’s method to find root (sigma)
+    try:
+        iv = brentq(f, 1e-6, 5)  # volatility between 0.000001 and 500%
+    except Exception:
+        iv = 0.000001
+    return iv
+
+def bs_put_price(S, K, T, sigma, r=FEDFUNDS):
+    if sigma == 0 or T == 0:
+        return max(0.0, K - S)
+    d1 = (math.log(S/K) + (r + 0.5*sigma**2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    return K * math.exp(-r*T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
+def implied_volatility_put(P_market, S, K, T, r=FEDFUNDS):
+    f = lambda sigma: bs_put_price(S, K, T, r, sigma) - P_market
+    try:
+        iv = brentq(f, 1e-6, 5)  # volatility between 0.0001% and 500%
+    except Exception:
+        iv = 0.000001
+    return iv
+
+def bs_d1_d2(S, K, T, sigma, r=FEDFUNDS):
+    if sigma <= 0 or T <= 0:
+        return 0.0, 0.0
+    d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    return d1, d2
+
+def getDelta(S, K, T, sigma, r=FEDFUNDS, is_call=True):
+    d1, _ = bs_d1_d2(S, K, T, sigma, r)
+    if is_call:
+        return norm.cdf(d1)
+    else:
+        return norm.cdf(d1) - 1
+
+def getGamma(S, K, T, sigma, r=FEDFUNDS):
+    d1, _ = bs_d1_d2(S, K, T, sigma, r)
+    return norm.pdf(d1) / (S * sigma * math.sqrt(T))
+
+def getVega(S, K, T, sigma, r=FEDFUNDS):
+    d1, _ = bs_d1_d2(S, K, T, sigma, r)
+    return S * norm.pdf(d1) * math.sqrt(T) / 100.0  # expressed per 1% change in vol
+
+def getTheta(S, K, T, sigma, r=FEDFUNDS, is_call=True):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    first_term = -(S * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
+    if is_call:
+        second_term = -r * K * math.exp(-r*T) * norm.cdf(d2)
+        return (first_term + second_term) / TRADINGDAYS  # per day
+    else:
+        second_term = r * K * math.exp(-r*T) * norm.cdf(-d2)
+        return (first_term + second_term) / TRADINGDAYS
+
+def getRho(S, K, T, sigma, r=FEDFUNDS, is_call=True):
+    _, d2 = bs_d1_d2(S, K, T, sigma, r)
+    if is_call:
+        return K * T * math.exp(-r*T) * norm.cdf(d2) / 100.0  # per 1% change in rates
+    else:
+        return -K * T * math.exp(-r*T) * norm.cdf(-d2) / 100.0
+
+def getCharm(S, K, T, sigma, r=FEDFUNDS, is_call=True):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    if T <= 0: return 0.0
+    first_term = -norm.pdf(d1) * (2*r*T - d2*sigma*math.sqrt(T)) / (2*T*sigma*math.sqrt(T))
+    if is_call:
+        return first_term - r*math.exp(-r*T)*norm.cdf(d2)
+    else:
+        return first_term + r*math.exp(-r*T)*norm.cdf(-d2)
+
+def getVanna(S, K, T, sigma, r=FEDFUNDS):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    return -norm.pdf(d1) * d2 / sigma
+
+def getVomma(S, K, T, sigma, r=FEDFUNDS):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    v = getVega(S, K, T, sigma, r) * 100.0  # undo /100
+    return v * d1 * d2 / sigma
+
+def getVeta(S, K, T, sigma, r=FEDFUNDS):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    v = getVega(S, K, T, sigma, r) * 100.0
+    return -v * (r + (d1*d2) / (2*T))
+
+def getSpeed(S, K, T, sigma, r=FEDFUNDS):
+    d1, _ = bs_d1_d2(S, K, T, sigma, r)
+    g = getGamma(S, K, T, sigma, r)
+    return -g * (d1 / (S * sigma * math.sqrt(T)))
+
+def getZomma(S, K, T, sigma, r=FEDFUNDS):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    g = getGamma(S, K, T, sigma, r)
+    return g * (d1*d2 - 1) / sigma
+
+def getColor(S, K, T, sigma, r=FEDFUNDS):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    g = getGamma(S, K, T, sigma, r)
+    return -g * (2*r*T + 1 + d1*d2) / (2*T)
+
+def getUltima(S, K, T, sigma, r=FEDFUNDS):
+    d1, d2 = bs_d1_d2(S, K, T, sigma, r)
+    v = getVega(S, K, T, sigma, r) * 100.0
+    return -v * (d1*d2*(1 - d1*d2) + d1**2 + d2**2) / sigma**2
+
+def scrapeChainStats(ticker, url, csvname):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=OPTIONS)
     driver.get(url)
     # Give time for JavaScript to load (you can also use explicit waits)
@@ -113,7 +244,7 @@ def scrapeChainInfo(url, ticker, csvname):
     
     print(f"src/utils.py :: Successfully webscraped {ticker} option data table to {csvname}")
     
-def scrapeEntireChain(url, ticker, csvname):
+def scrapeEntireChain(ticker, url, csvname):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=OPTIONS)
     driver.get(url)
     # Give time for JavaScript to load
@@ -206,23 +337,29 @@ def scrapeEntireChain(url, ticker, csvname):
         writer = csv.writer(f)
         writer.writerow([
             "expiry", "underlying", "underlying_price", "strike", "call_or_put",
-            "last", "bid", "ask", "volume", "open_interest", "iv", "yte"
+            "last", "bid", "ask", "volume", "open_interest",
+            "iv", "delta", "gamma", "vega", "theta", "rho", "yte",
+            "charm", "vanna", "vomma", "veta", "speed", "zomma", "color", "ultima"
         ])
         for expiry in option_chain.expiries:
             for c in expiry.calls:
                 writer.writerow([
                     expiry.date, c.underlying, c.underlying_price, c.strike, "Call",
-                    c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest, c.iv, f"{c.yte:.2f}"
+                    c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest,
+                    c.iv, c.delta, c.gamma, c.vega, c.theta, c.rho, f"{c.yte:.4f}",
+                    c.charm, c.vanna, c.vomma, c.veta, c.speed, c.zomma, c.color, c.ultima
                 ])
             for p in expiry.puts:
                 writer.writerow([
                     expiry.date, p.underlying, p.underlying_price, p.strike, "Put",
-                    p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest, p.iv, f"{p.yte:.2f}"
+                    p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest,
+                    p.iv, p.delta, p.gamma, p.vega, p.theta, p.rho, f"{p.yte:.4f}",
+                    p.charm, p.vanna, p.vomma, p.veta, p.speed, p.zomma, p.color, p.ultima
                 ])
 
     print(f"scr/utils.py :: Saved {ticker} option chain to {csvname}")
 
-def plotIvCurve(ticker, csvname, pngname):
+def plotChainIvCurve(ticker, csvname, pngname):
     if not os.path.exists(csvname):
         print(f"src/utils.py :: {csvname} does not exist")
         return
@@ -248,7 +385,7 @@ def plotIvCurve(ticker, csvname, pngname):
     plt.close()
     print(f"src/utils.py :: Successsfully created IV curve and saved to {pngname}")
 
-def plotIvSurface(ticker, csvname, pngnamec, pngnamep):
+def plotChainSurface(ticker, mode, csvname, pngnamec, pngnamep):
     if not os.path.exists(csvname):
         print(f"src/utils.py :: {csvname} does not exist")
         return
@@ -256,11 +393,15 @@ def plotIvSurface(ticker, csvname, pngnamec, pngnamep):
     if "chain" not in csvname:
         print(f"src/utils.py :: {csvname} cannot be used because it is not an option chain csv")
         return
+
+    if mode not in MODES:
+        print(f"src/utils.py :: Mode {mode} is invalid; valid modes are: {MODES}")
+        return
     
     df = pd.read_csv(csvname)
-    df = df[df["iv"].notna()]
+    df = df[df[mode].notna()]
     df["strike"] = df["strike"].astype(float)
-    df["iv"] = df["iv"].astype(float)
+    df[mode] = df[mode].astype(float)
     df["yte"] = df["yte"].astype(float)
     
     df_calls = df[df["call_or_put"] == "Call"]
@@ -278,17 +419,17 @@ def plotIvSurface(ticker, csvname, pngnamec, pngnamep):
 
     for i, t in enumerate(expiriesc):
         for j, k in enumerate(strikesc):
-            iv_row = df_calls[(df_calls["yte"] == t) & (df_calls["strike"] == k)]
-            if not iv_row.empty:
-                ZC[i, j] = iv_row["iv"].values[0]
+            data_row = df_calls[(df_calls["yte"] == t) & (df_calls["strike"] == k)]
+            if not data_row.empty:
+                ZC[i, j] = data_row[mode].values[0]
             else:
                 ZC[i, j] = 0.000001  # in case some strike-expiry combinations don't exist
 
     for i, t in enumerate(expiriesp):
         for j, k in enumerate(strikesp):
-            iv_row = df_puts[(df_puts["yte"] == t) & (df_puts["strike"] == k)]
-            if not iv_row.empty:
-                ZP[i, j] = iv_row["iv"].values[0]
+            data_row = df_puts[(df_puts["yte"] == t) & (df_puts["strike"] == k)]
+            if not data_row.empty:
+                ZP[i, j] = data_row[mode].values[0]
             else:
                 ZP[i, j] = 0.000001  # in case some strike-expiry combinations don't exist
 
@@ -297,53 +438,21 @@ def plotIvSurface(ticker, csvname, pngnamec, pngnamep):
     surfc = axc.plot_surface(XC, YC, ZC, cmap="viridis", edgecolor="k", linewidth=0.5, alpha=0.9)
     axc.set_xlabel("Strike")
     axc.set_ylabel("Time to Expiry (Years)")
-    axc.set_title(f"{ticker} IV Surface (Calls)")
+    axc.set_title(f"{ticker} {mode} Surface (Calls)")
     figc.colorbar(surfc, shrink=0.5, aspect=10, label="IV")
     plt.tight_layout()
     plt.savefig(pngnamec, dpi=150)
     plt.close()
-    print(f"src/utils.py :: Successsfully created IV surface and saved to {pngnamec}")
+    print(f"src/utils.py :: Successsfully created {mode} call surface and saved to {pngnamec}")
 
     figp = plt.figure(figsize=(12,8))
     axp = figp.add_subplot(111, projection="3d")
     surfp = axp.plot_surface(XP, YP, ZP, cmap="viridis", edgecolor="k", linewidth=0.5, alpha=0.9)
     axp.set_xlabel("Strike")
     axp.set_ylabel("Time to Expiry (Years)")
-    axp.set_title(f"{ticker} IV Surface (Puts)")
+    axp.set_title(f"{ticker} {mode} Surface (Puts)")
     figp.colorbar(surfp, shrink=0.5, aspect=10, label="IV")
     plt.tight_layout()
     plt.savefig(pngnamep, dpi=150)
     plt.close()
-    print(f"src/utils.py :: Successsfully created IV surface and saved to {pngnamep}")
-
-def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
-    if sigma == 0 or T == 0:
-        return max(0.0, S - K)
-    d1 = (math.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma * math.sqrt(T))
-    d2 = d1 - sigma * math.sqrt(T)
-    return S * norm.cdf(d1) - K * math.exp(-r*T) * norm.cdf(d2)
-
-def implied_volatility_call(C_market, S, K, T, r=FEDFUNDS):
-    # Define function whose root is the implied volatility
-    f = lambda sigma: bs_call_price(S, K, T, r, sigma) - C_market
-    # Use Brent’s method to find root (sigma)
-    try:
-        iv = brentq(f, 1e-6, 5)  # volatility between 0.000001 and 500%
-    except Exception:
-        iv = 0.000001
-    return iv
-
-def bs_put_price(S, K, T, sigma, r=FEDFUNDS):
-    if sigma == 0 or T == 0:
-        return max(0.0, K - S)
-    d1 = (math.log(S/K) + (r + 0.5*sigma**2) * T) / (sigma * math.sqrt(T))
-    d2 = d1 - sigma * math.sqrt(T)
-    return K * math.exp(-r*T) * norm.cdf(-d2) - S * norm.cdf(-d1)
-
-def implied_volatility_put(P_market, S, K, T, r=FEDFUNDS):
-    f = lambda sigma: bs_put_price(S, K, T, r, sigma) - P_market
-    try:
-        iv = brentq(f, 1e-6, 5)  # volatility between 0.0001% and 500%
-    except Exception:
-        iv = 0.000001
-    return iv
+    print(f"src/utils.py :: Successsfully created {mode} put surface and saved to {pngnamep}")

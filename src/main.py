@@ -1,9 +1,9 @@
-from utils import scrapeChainInfo, scrapeEntireChain, plotIvCurve, plotIvSurface
-from consts import DIRS, BASEURL, URLP2
+from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface
+from consts import DIRS, MODES, BASEURL, URLP2
 import sys
 import os
 
-if __name__ == "__main__":
+def startupRoutine():
     if len(sys.argv) != 2:
         print("src/main.py :: Only one ticker argument required [EX. python src/main.py SPY, NVDA]")
         sys.exit(1)
@@ -20,12 +20,16 @@ if __name__ == "__main__":
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-    ticker = sys.argv[1].upper()
+    return sys.argv[1].upper()
 
-    scrapeChainInfo(f"{BASEURL}{ticker}", ticker, f"data/{ticker}stats.csv")
+if __name__ == "__main__":
+    ticker = startupRoutine()
 
-    plotIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}chainiv.png")
+    scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
 
-    scrapeEntireChain(f"{BASEURL}{ticker}{URLP2}", ticker, f"data/{ticker}chain.csv")
+    plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
 
-    plotIvSurface(ticker, f"data/{ticker}chain.csv", f"img/{ticker}civ.png", f"img/{ticker}piv.png")
+    scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
+
+    for mode in MODES:
+        plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
