@@ -5,11 +5,13 @@ import csv
 import time
 import math
 from datetime import datetime
+import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from scipy.optimize import brentq
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -246,7 +248,7 @@ def plotIvCurve(csvname, pngname):
     plt.close()
     print(f"src/utils.py :: Successsfully created IV curve and saved to {pngname}")
 
-def plotIvSurface(csvname, pngname):
+def plotIvSurface(csvname, pngnamec, pngnamep):
     if not os.path.exists(csvname):
         print(f"src/utils.py :: {csvname} does not exist")
         return
@@ -255,7 +257,62 @@ def plotIvSurface(csvname, pngname):
         print(f"src/utils.py :: {csvname} cannot be used because it is not an option chain csv")
         return
     
+    df = pd.read_csv(csvname)
+    df = df[df["iv"].notna()]
+    df["strike"] = df["strike"].astype(float)
+    df["iv"] = df["iv"].astype(float)
+    df["yte"] = df["yte"].astype(float)
     
+    df_calls = df[df["call_or_put"] == "Call"]
+    df_puts = df[df["call_or_put"] == "Puts"]
+
+    strikesc = sorted(df_calls["strike"].unique())
+    expiriesc = sorted(df_calls["yte"].unique())
+    strikesp = sorted(df_puts["strike"].unique())
+    expiriesp = sorted(df_puts["yte"].unique())
+
+    XC, YC = np.meshgrid(strikesc, expiriesc)
+    XP, YP = np.meshgrid(strikesp, expiriesp)
+    ZC = np.zeros_like(XC, dtype=float)
+    ZP = np.zeros_like(XP, dtype=float)
+
+    for i, t in enumerate(expiriesc):
+        for j, k in enumerate(strikesc):
+            iv_row = df_calls[(df_calls["yte"] == t) & (df_calls["strike"] == k)]
+            if not iv_row.empty:
+                ZC[i, j] = iv_row["iv"].values[0]
+            else:
+                ZC[i, j] = 0.000001  # in case some strike-expiry combinations don't exist
+
+    for i, t in enumerate(expiriesp):
+        for j, k in enumerate(strikesp):
+            iv_row = df_puts[(df_puts["yte"] == t) & (df_puts["strike"] == k)]
+            if not iv_row.empty:
+                ZP[i, j] = iv_row["iv"].values[0]
+            else:
+                ZP[i, j] = 0.000001  # in case some strike-expiry combinations don't exist
+
+    figc = plt.figure(figsize=(12,8))
+    axc = figc.add_subplot(111, projection="3d")
+    surfc = axc.plot_surface(XC, YC, ZC, cmap="viridis", edgecolor="k", linewidth=0.5, alpha=0.9)
+    axc.set_xlabel("Strike")
+    axc.set_ylabel("Time to Expiry (Years)")
+    axc.set_title(f"{df_calls["underlying"].iloc[0]} IV Surface (Calls)")
+    figc.colorbar(surfc, shrink=0.5, aspect=10, label="IV")
+    plt.tight_layout()
+    plt.savefig(pngnamec, dpi=150)
+    plt.close()
+
+    figp = plt.figure(figsize=(12,8))
+    axp = figp.add_subplot(111, projection="3d")
+    surfp = axp.plot_surface(XP, YP, ZP, cmap="viridis", edgecolor="k", linewidth=0.5, alpha=0.9)
+    axp.set_xlabel("Strike")
+    axp.set_ylabel("Time to Expiry (Years)")
+    axp.set_title(f"{df_puts["underlying"].iloc[0]} IV Surface (Puts)")
+    figc.colorbar(surfp, shrink=0.5, aspect=10, label="IV")
+    plt.tight_layout()
+    plt.savefig(pngnamep, dpi=150)
+    plt.close()
 
 def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
     if sigma == 0 or T == 0:
