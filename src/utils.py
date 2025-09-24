@@ -24,8 +24,9 @@ OPTIONS = webdriver.ChromeOptions()
 OPTIONS.add_argument("--headless")  # run without opening browser window
 
 class OptionContract:
-    def __init__(self, ticker, underlyingprice, strike, yte, lastprice, bidprice, askprice, vol, oi, cp_flag):
+    def __init__(self, ticker, symbol, underlyingprice, strike, yte, lastprice, bidprice, askprice, vol, oi, cp_flag):
         self.underlying = ticker
+        self.symbol = symbol
         self.underlying_price = float(underlyingprice)
         self.strike = float(strike.replace(",", ""))
         self.yte = float(yte)
@@ -303,6 +304,8 @@ def scrapeEntireChain(ticker, url, csvname):
         url = f"{BASEURL}{ticker}{URLP2}{URLP3}{formatted_expiration_dates[i]}:{wms[i]}{URLP4}"
         driver.get(url)
         time.sleep(3.0)
+        shortdate_parts = formatted_expiration_dates[i].split("-")
+        shortdate = shortdate_parts[0][2:]+shortdate_parts[1]+shortdate_parts[2]
         calls = []
         puts = []
         table = driver.find_element(By.CSS_SELECTOR, "table.table.table-sm.table-hover")
@@ -326,8 +329,15 @@ def scrapeEntireChain(ticker, url, csvname):
             pvol = cols[9]
             p_oi = cols[10]
 
-            calls.append(OptionContract(ticker, price_string, strike, exp_in_years[i], clast, cbid, cask, cvol, c_oi, True))
-            puts.append(OptionContract(ticker, price_string, strike, exp_in_years[i], plast, pbid, pask, pvol, p_oi, False))
+            # Make symbols like CHGG251121C00002000 = CHGG 2025-11-21 $2.00 call
+            strike_val = float(strike)            # e.g. "2.00" → 2.0
+            strike_int = int(strike_val * 1000)   # scale by 1000 → 2000
+            strike_str = f"{strike_int:08d}"
+            csymbol = f"{ticker}{shortdate}C{strike_str}"
+            psymbol = f"{ticker}{shortdate}P{strike_str}"
+
+            calls.append(OptionContract(ticker, csymbol, price_string, strike, exp_in_years[i], clast, cbid, cask, cvol, c_oi, True))
+            puts.append(OptionContract(ticker, psymbol, price_string, strike, exp_in_years[i], plast, pbid, pask, pvol, p_oi, False))
 
         print(f"src/utils.py :: Processed Calls and Puts for expiration {formatted_expiration_dates[i]}")
         expiries.append(OptionExpiry(ticker, formatted_expiration_dates[i], exp_in_years[i], calls, puts))
@@ -336,7 +346,7 @@ def scrapeEntireChain(ticker, url, csvname):
     with open(csvname, mode="w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
-            "expiry", "underlying", "underlying_price", "strike", "call_or_put",
+            "expiry", "underlying", "symbol", "underlying_price", "strike", "call_or_put",
             "last", "bid", "ask", "volume", "open_interest",
             "iv", "delta", "gamma", "vega", "theta", "rho", "yte",
             "charm", "vanna", "vomma", "veta", "speed", "zomma", "color", "ultima"
@@ -344,14 +354,14 @@ def scrapeEntireChain(ticker, url, csvname):
         for expiry in option_chain.expiries:
             for c in expiry.calls:
                 writer.writerow([
-                    expiry.date, c.underlying, c.underlying_price, c.strike, "Call",
+                    expiry.date, c.underlying, c.symbol, c.underlying_price, c.strike, "Call",
                     c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest,
                     c.iv, c.delta, c.gamma, c.vega, c.theta, c.rho, f"{c.yte:.4f}",
                     c.charm, c.vanna, c.vomma, c.veta, c.speed, c.zomma, c.color, c.ultima
                 ])
             for p in expiry.puts:
                 writer.writerow([
-                    expiry.date, p.underlying, p.underlying_price, p.strike, "Put",
+                    expiry.date, p.underlying, p.symbol, p.underlying_price, p.strike, "Put",
                     p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest,
                     p.iv, p.delta, p.gamma, p.vega, p.theta, p.rho, f"{p.yte:.4f}",
                     p.charm, p.vanna, p.vomma, p.veta, p.speed, p.zomma, p.color, p.ultima
