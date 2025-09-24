@@ -120,12 +120,19 @@ class App(tk.Tk):
         filepath = self.img_list.get(self.img_list.curselection()[0])
 
         try:
-            img = Image.open(filepath)
-            img = img.resize((800, 600), Image.LANCZOS)
-            self.tk_img = ImageTk.PhotoImage(img)
-            self.img_label.config(image=self.tk_img)
+            self.original_img = Image.open(filepath)  # keep original
+            self.resize_image()  # draw first time
+            self.img_frame.bind("<Configure>", lambda e: self.resize_image())
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load image:\n{e}")
+
+    def resize_image(self):
+        if hasattr(self, "original_img"):
+            frame_w = self.img_frame.winfo_width()
+            frame_h = self.img_frame.winfo_height()
+            img = self.original_img.copy().resize((frame_w, frame_h), Image.LANCZOS)
+            self.tk_img = ImageTk.PhotoImage(img)
+            self.img_label.config(image=self.tk_img)
 
 if __name__ == "__main__":
     app = App()
