@@ -84,6 +84,7 @@ def scrapeChainInfo(url, ticker, csvname):
     table = soup.find("table", class_="table table-sm table-hover table-bordered table-responsive optioncharts-table-styling")
     if not table:
         print("src/util.py :: No HTML table found")
+        driver.quit()
         return
     
     driver.quit()
@@ -130,27 +131,36 @@ def scrapeEntireChain(url, ticker, csvname):
     expirations_text = [lbl.text for lbl in labels if lbl.text.strip()]
     formatted_expiration_dates = []
     exp_in_years = []
+    wms = []
     for text in expirations_text:
-        date_str = text.split("(")[0].strip()
+        parts = text.split("(")
+
+        date_str = parts[0].strip()
         exp_dt = datetime.strptime(date_str, "%b %d, %Y")
-        final_dt = exp_dt.strtftime("%Y-%m-%d")
+        final_dt = exp_dt.strftime("%Y-%m-%d")
         formatted_expiration_dates.append(final_dt)
 
-        days_part = text.split("(")[1].split()[0]
+        days_part = parts[1].split()[0]
         days = int(days_part)
         years = days / TRADINGDAYS
         exp_in_years.append(years)
+
         if len(formatted_expiration_dates) != len(exp_in_years):
             print(f"src/utils.py :: len(formatted_expiration_dates) != len(exp_in_years)")
             sys.exit(1)
+
+        if "w" in parts[2]:
+            wms.append("w")
+        elif "m" in parts[2]:
+            wms.append("m")
 
     print(f"src/utils.py :: Successfully parsed expiration dates and calculated yte for each expiry/contract")
     time.sleep(1.0)
     expiries = []
     for i in range(0, len(exp_in_years)):
-        url = f"{url}{URLP3}{formatted_expiration_dates[i]}{URLP4}"
+        url = f"{BASEURL}{ticker}{URLP2}{URLP3}{formatted_expiration_dates[i]}:{wms[i]}{URLP4}"
         driver.get(url)
-        time.sleep(1.0)
+        time.sleep(3.0)
         calls = []
         puts = []
         table = driver.find_element(By.CSS_SELECTOR, "table.table.table-sm.table-hover")
@@ -173,6 +183,7 @@ def scrapeEntireChain(url, ticker, csvname):
             pask = cols[8]
             pvol = cols[9]
             p_oi = cols[10]
+
             calls.append(OptionContract(ticker, strike, price_string, exp_in_years[i], clast, cbid, cask, cvol, c_oi, True))
             puts.append(OptionContract(ticker, strike, price_string, exp_in_years[i], plast, pbid, pask, pvol, p_oi, False))
 

@@ -1,8 +1,8 @@
 DIRS = ["data", "img"]
 BASEURL = "https://optioncharts.io/options/"
 URLP2 = "/option-chain"
-URLP3 =  "?option_type=all&expiration_dates="
-URLP4 =  ":w&view=straddle&strike_range=all"
+URLP3 = "?option_type=all&expiration_dates="
+URLP4 = "&view=straddle&strike_range=all"
 TABLEHEADERS = [
     "Expiration", "Volume Calls", "Volume Puts", "Volume Put-Call Ratio",
     "OI Calls", "OI Puts", "OI Put-Call Ratio",
