@@ -9,3 +9,4 @@ TABLEHEADERS = [
     "IV", "Expected Move", "Max Pain", "Max Pain vs Current Price"
 ]
 TRADINGDAYS = 252
+FEDFUNDS = 0.0408

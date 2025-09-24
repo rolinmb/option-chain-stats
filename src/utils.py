@@ -1,10 +1,13 @@
-from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4
+from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, FEDFUNDS
 import os
 import sys
 import csv
 import time
+import math
 from datetime import datetime
 import pandas as pd
+from scipy.stats import norm
+from scipy.optimize import brentq
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 from selenium import webdriver
@@ -31,6 +34,12 @@ class OptionContract:
         self.volume = float(vol.replace(",", ""))
         self.openinterest = float(oi.replace(",", ""))
         self.iscall = cp_flag
+        self.iv = 0.000001
+        if self.iscall:
+            self.iv = implied_volatility_call(self.midprice, self.underlying_price, self.strike, self.yte)
+        else:
+            self.iv = implied_volatility_put(self.midprice, self.underlying_price, self.strike, self.yte)
+
 
     def __repr__(self):
         return (
@@ -184,8 +193,8 @@ def scrapeEntireChain(url, ticker, csvname):
             pvol = cols[9]
             p_oi = cols[10]
 
-            calls.append(OptionContract(ticker, strike, price_string, exp_in_years[i], clast, cbid, cask, cvol, c_oi, True))
-            puts.append(OptionContract(ticker, strike, price_string, exp_in_years[i], plast, pbid, pask, pvol, p_oi, False))
+            calls.append(OptionContract(ticker, price_string, strike, exp_in_years[i], clast, cbid, cask, cvol, c_oi, True))
+            puts.append(OptionContract(ticker, price_string, strike, exp_in_years[i], plast, pbid, pask, pvol, p_oi, False))
 
         print(f"src/utils.py :: Processed Calls and Puts for expiration {formatted_expiration_dates[i]}")
         expiries.append(OptionExpiry(ticker, formatted_expiration_dates[i], exp_in_years[i], calls, puts))
@@ -195,18 +204,18 @@ def scrapeEntireChain(url, ticker, csvname):
         writer = csv.writer(f)
         writer.writerow([
             "expiry", "underlying", "underlying_price", "strike", "call_or_put",
-            "last", "bid", "ask", "volume", "open_interest", "yte"
+            "last", "bid", "ask", "volume", "open_interest", "iv", "yte"
         ])
         for expiry in option_chain.expiries:
-            for c in expiry[3]:
+            for c in expiry.calls:
                 writer.writerow([
                     expiry.date, c.underlying, c.underlying_price, c.strike, "Call",
-                    c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest, f"{c.yte:.2f}"
+                    c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest, c.iv, f"{c.yte:.2f}"
                 ])
-            for p in expiry[4]:
+            for p in expiry.puts:
                 writer.writerow([
                     expiry.date, p.underlying, p.underlying_price, p.strike, "Put",
-                    p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest, f"{p.yte:.2f}"
+                    p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest, p.iv, f"{p.yte:.2f}"
                 ])
 
     print(f"scr/utils.py :: Saved {ticker} option chain to {csvname}")
@@ -236,3 +245,46 @@ def plotIvCurve(csvname, pngname):
     plt.savefig(pngname, dpi=150)
     plt.close()
     print(f"src/utils.py :: Successsfully created IV curve and saved to {pngname}")
+
+def plotIvSurface(csvname, pngname):
+    if not os.path.exists(csvname):
+        print(f"src/utils.py :: {csvname} does not exist")
+        return
+    
+    if "chain" not in csvname:
+        print(f"src/utils.py :: {csvname} cannot be used because it is not an option chain csv")
+        return
+    
+    
+
+def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
+    if sigma == 0 or T == 0:
+        return max(0.0, S - K)
+    d1 = (math.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    return S * norm.cdf(d1) - K * math.exp(-r*T) * norm.cdf(d2)
+
+def implied_volatility_call(C_market, S, K, T, r=FEDFUNDS):
+    # Define function whose root is the implied volatility
+    f = lambda sigma: bs_call_price(S, K, T, r, sigma) - C_market
+    # Use Brent’s method to find root (sigma)
+    try:
+        iv = brentq(f, 1e-6, 5)  # volatility between 0.000001 and 500%
+    except Exception:
+        iv = 0.000001
+    return iv
+
+def bs_put_price(S, K, T, sigma, r=FEDFUNDS):
+    if sigma == 0 or T == 0:
+        return max(0.0, K - S)
+    d1 = (math.log(S/K) + (r + 0.5*sigma**2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    return K * math.exp(-r*T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
+def implied_volatility_put(P_market, S, K, T, r=FEDFUNDS):
+    f = lambda sigma: bs_put_price(S, K, T, r, sigma) - P_market
+    try:
+        iv = brentq(f, 1e-6, 5)  # volatility between 0.0001% and 500%
+    except Exception:
+        iv = 0.000001
+    return iv
