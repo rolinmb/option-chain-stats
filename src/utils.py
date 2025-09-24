@@ -222,7 +222,7 @@ def scrapeEntireChain(url, ticker, csvname):
 
     print(f"scr/utils.py :: Saved {ticker} option chain to {csvname}")
 
-def plotIvCurve(csvname, pngname):
+def plotIvCurve(ticker, csvname, pngname):
     if not os.path.exists(csvname):
         print(f"src/utils.py :: {csvname} does not exist")
         return
@@ -241,14 +241,14 @@ def plotIvCurve(csvname, pngname):
     plt.plot(df["ExpirationDate"], df["IV"], marker="o", linestyle="-", color="blue")
     plt.xlabel("Expiration")
     plt.ylabel("Implied Volatility (%)")
-    plt.title("Implied Volatility Curve")
+    plt.title(f"{ticker} Implied Volatility Curve")
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(pngname, dpi=150)
     plt.close()
     print(f"src/utils.py :: Successsfully created IV curve and saved to {pngname}")
 
-def plotIvSurface(csvname, pngnamec, pngnamep):
+def plotIvSurface(ticker, csvname, pngnamec, pngnamep):
     if not os.path.exists(csvname):
         print(f"src/utils.py :: {csvname} does not exist")
         return
@@ -264,7 +264,7 @@ def plotIvSurface(csvname, pngnamec, pngnamep):
     df["yte"] = df["yte"].astype(float)
     
     df_calls = df[df["call_or_put"] == "Call"]
-    df_puts = df[df["call_or_put"] == "Puts"]
+    df_puts = df[df["call_or_put"] == "Put"]
 
     strikesc = sorted(df_calls["strike"].unique())
     expiriesc = sorted(df_calls["yte"].unique())
@@ -297,22 +297,24 @@ def plotIvSurface(csvname, pngnamec, pngnamep):
     surfc = axc.plot_surface(XC, YC, ZC, cmap="viridis", edgecolor="k", linewidth=0.5, alpha=0.9)
     axc.set_xlabel("Strike")
     axc.set_ylabel("Time to Expiry (Years)")
-    axc.set_title(f"{df_calls["underlying"].iloc[0]} IV Surface (Calls)")
+    axc.set_title(f"{ticker} IV Surface (Calls)")
     figc.colorbar(surfc, shrink=0.5, aspect=10, label="IV")
     plt.tight_layout()
     plt.savefig(pngnamec, dpi=150)
     plt.close()
+    print(f"src/utils.py :: Successsfully created IV surface and saved to {pngnamec}")
 
     figp = plt.figure(figsize=(12,8))
     axp = figp.add_subplot(111, projection="3d")
     surfp = axp.plot_surface(XP, YP, ZP, cmap="viridis", edgecolor="k", linewidth=0.5, alpha=0.9)
     axp.set_xlabel("Strike")
     axp.set_ylabel("Time to Expiry (Years)")
-    axp.set_title(f"{df_puts["underlying"].iloc[0]} IV Surface (Puts)")
-    figc.colorbar(surfp, shrink=0.5, aspect=10, label="IV")
+    axp.set_title(f"{ticker} IV Surface (Puts)")
+    figp.colorbar(surfp, shrink=0.5, aspect=10, label="IV")
     plt.tight_layout()
     plt.savefig(pngnamep, dpi=150)
     plt.close()
+    print(f"src/utils.py :: Successsfully created IV surface and saved to {pngnamep}")
 
 def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
     if sigma == 0 or T == 0:

@@ -1,4 +1,4 @@
-from utils import scrapeChainInfo, scrapeEntireChain, plotIvCurve
+from utils import scrapeChainInfo, scrapeEntireChain, plotIvCurve, plotIvSurface
 from consts import DIRS, BASEURL, URLP2
 import sys
 import os
@@ -22,8 +22,10 @@ if __name__ == "__main__":
 
     ticker = sys.argv[1].upper()
 
-    scrapeChainInfo(f"{BASEURL}{ticker}", ticker, f"data/{ticker}.csv")
+    scrapeChainInfo(f"{BASEURL}{ticker}", ticker, f"data/{ticker}stats.csv")
+
+    plotIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}chainiv.png")
 
     scrapeEntireChain(f"{BASEURL}{ticker}{URLP2}", ticker, f"data/{ticker}chain.csv")
-    
-    plotIvCurve(f"data/{ticker}.csv", f"img/{ticker}.png")
+
+    plotIvSurface(ticker, f"data/{ticker}chain.csv", f"img/{ticker}civ.png", f"img/{ticker}piv.png")
