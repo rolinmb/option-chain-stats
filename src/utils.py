@@ -456,3 +456,6 @@ def plotChainSurface(ticker, mode, csvname, pngnamec, pngnamep):
     plt.savefig(pngnamep, dpi=150)
     plt.close()
     print(f"src/utils.py :: Successsfully created {mode} put surface and saved to {pngnamep}")
+
+if __name__ == "__main__":
+    pass

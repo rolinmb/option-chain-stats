@@ -13,3 +13,6 @@ FEDFUNDS = 0.0408
 MODES = ["iv", "delta", "gamma", "vega", "theta",
     "rho", "charm", "vanna", "vomma", "veta", "speed",
     "zomma", "color", "ultima"]
+
+if __name__ == "__main__":
+    pass
