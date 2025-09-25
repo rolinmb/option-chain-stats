@@ -69,8 +69,8 @@ class OptionContract:
             f"Strike={self.strike:.2f} "
             f"Mid={self.midprice:.2f} "
             f"YtE={self.yte:.4f}>\n"
-            f"  IV={self.iv:.4f} | Δ={self.delta:.4f} | Γ={self.gamma:.6f} | "
-            f"V={self.vega:.4f} | Θ={self.theta:.4f} | ρ={self.rho:.4f}\n"
+            f"  IV={self.iv:.4f} | Delta={self.delta:.4f} | Gamma={self.gamma:.6f} | "
+            f"Vega={self.vega:.4f} | Theta={self.theta:.4f} | Rho={self.rho:.4f}\n"
             f"  Charm={self.charm:.6f} | Vanna={self.vanna:.6f} | Vomma={self.vomma:.6f} | "
             f"Veta={self.veta:.6f}\n"
             f"  Speed={self.speed:.6f} | Zomma={self.zomma:.6f} | Color={self.color:.6f} | "
@@ -107,7 +107,50 @@ class OptionChain:
             f"expiries={len(self.expiries)}, "
             f"dates={expiry_dates})"
         )
+
+def getChainFromCsv(csvname):
+    if not os.path.exists(csvname):
+        print(f"src/utils.py :: {csvname} does not exist")
+        return None
     
+    base = os.path.basename(csvname)
+    if "chain" not in base:
+        print(f"src/utils.py :: {csvname} is not an option chain csv")
+        return None
+    
+    ticker = base.split("chain")[0]
+    df = pd.read_csv(csvname)
+    expiries = []
+
+    grouped = df.groupby("expiry")
+    for expiry_date, group in grouped:
+        yte = group["yte"].iloc[0]
+        calls = []
+        puts = []
+        for _, row in group.iterrows():
+            is_call = row["call_or_put"] == "Call"
+            contract = OptionContract(
+                ticker=row["underlying"],
+                symbol=row["symbol"],
+                underlyingprice=row["underlying_price"],
+                strike=str(row["strike"]),
+                yte=row["yte"],
+                lastprice=str(row["last"]),
+                bidprice=str(row["bid"]),
+                askprice=str(row["ask"]),
+                vol=str(row["volume"]),
+                oi=str(row["open_interest"]),
+                cp_flag=is_call
+            )
+            if is_call:
+                calls.append(contract)
+            else:
+                puts.append(contract)
+
+        expiries.append(OptionExpiry(ticker, expiry_date, yte, calls=calls, puts=puts))
+
+    return OptionChain(ticker, expiries)
+
 def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
     if sigma == 0 or T == 0:
         return max(0.0, S - K)

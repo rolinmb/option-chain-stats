@@ -1,4 +1,4 @@
-from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface
+from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface, getChainFromCsv
 from consts import DIRS, MODES, BASEURL, URLP2
 from polygon import PolygonAPI
 from key import POLYGONKEY
@@ -26,7 +26,7 @@ def startupRoutine():
 
 if __name__ == "__main__":
     ticker = startupRoutine()
-
+    
     scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
 
     plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
@@ -42,3 +42,14 @@ if __name__ == "__main__":
     polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-24", 365, f"img/{option_symbolc}.png")
     polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-24", 365, f"img/{option_symbolp}.png")
     polygon.getEquityChart(ticker, "day", "2025-01-01", "2025-09-24", 365, f"img/{ticker}.png")
+    
+    
+
+    """
+    chain = getChainFromCsv(f"data/{ticker}chain.csv")
+    for e in chain.expiries:
+        for c in e.calls:
+            print(f"{c}")
+        for p in e.puts:
+            print(f"{p}")
+    """
