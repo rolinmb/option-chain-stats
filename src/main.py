@@ -27,24 +27,21 @@ def startupRoutine():
 if __name__ == "__main__":
     ticker = startupRoutine()
     
-    scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
+    #scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
 
-    plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
+    #plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
 
-    scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
+    #scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
 
     for mode in MODES:
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
     
     polygon = PolygonAPI(POLYGONKEY)
-    option_symbolc = "NVDA250926C00175000" # NVDA 2025-09-26 $175 Call
-    option_symbolp = "NVDA250926P00175000" # NVDA 2025-09-26 $175 Put
-    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-24", 365, f"img/{option_symbolc}.png")
-    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-24", 365, f"img/{option_symbolp}.png")
-    polygon.getEquityChart(ticker, "day", "2025-01-01", "2025-09-24", 365, f"img/{ticker}.png")
-    
-    
-
+    option_symbolc = f"{ticker}250926C00100000" # Ticker 2025-09-26 $100 Call
+    option_symbolp = f"{ticker}250926P00100000" # Ticker 2025-09-26 $100 Put
+    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolc}.png")
+    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolp}.png")
+    polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"img/{ticker}.png")
     """
     chain = getChainFromCsv(f"data/{ticker}chain.csv")
     for e in chain.expiries:

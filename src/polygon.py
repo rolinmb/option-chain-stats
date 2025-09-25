@@ -12,7 +12,13 @@ class PolygonAPI:
         url = f"{POLYGONURL1}O:{option_symbol}/range/1/{timeframe}/{fromdate}/{todate}{POLYGONURL2}{ncandles}&apiKey={self.apikey}"
         response = requests.get(url)
         data = json.loads(response.text)
-        closes = [entry["c"] for entry in data["results"]]
+        closes = []
+        try:
+            closes = [entry["c"] for entry in data["results"]]
+        except:
+            print(f"src/polygon.py :: No option data returned for contract {option_symbol}")
+            return
+        
         timestamps = [datetime.fromtimestamp(entry["t"] / 1000) for entry in data["results"]]
 
         plt.figure(figsize=(10, 6))
@@ -25,12 +31,19 @@ class PolygonAPI:
         plt.tight_layout()
         plt.savefig(pngname, dpi=150)
         plt.close()
+        print(f"src/polygon.py :: Successfully created option chart {pngname}")
 
-    def getEquityChart(self, ticker, timeframe, fromdate, todate, ncandles, pngname):
+    def getUnderlyingChart(self, ticker, timeframe, fromdate, todate, ncandles, pngname):
         url = f"{POLYGONURL1}{ticker}/range/1/{timeframe}/{fromdate}/{todate}{POLYGONURL2}{ncandles}&apiKey={self.apikey}"
         response = requests.get(url)
         data = json.loads(response.text)
-        closes = [entry["c"] for entry in data["results"]]
+        closes = []
+        try:
+            closes = [entry["c"] for entry in data["results"]]
+        except:
+            print(f"src/polygon.py :: No underlying data returned for {ticker}")
+            return
+
         timestamps = [datetime.fromtimestamp(entry["t"] / 1000) for entry in data["results"]]
 
         plt.figure(figsize=(10, 6))
@@ -43,6 +56,7 @@ class PolygonAPI:
         plt.tight_layout()
         plt.savefig(pngname, dpi=150)
         plt.close()
+        print(f"src/polygon.py :: Successfully created underlying chart {pngname}")
 
 if __name__ == "__main__":
     pass

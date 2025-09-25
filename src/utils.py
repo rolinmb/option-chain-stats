@@ -1,4 +1,4 @@
-from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, FEDFUNDS, MODES
+from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, FEDFUNDS, MODES, MINIV, MAXIV
 import os
 import sys
 import csv
@@ -37,30 +37,31 @@ class OptionContract:
         self.volume = float(vol.replace(",", ""))
         self.openinterest = float(oi.replace(",", ""))
         self.iscall = cp_flag
-        self.iv = 0.000001
-        if self.iscall:
-            self.iv = implied_volatility_call(self.midprice, self.underlying_price, self.strike, self.yte, FEDFUNDS)
-        else:
-            self.iv = implied_volatility_put(self.midprice, self.underlying_price, self.strike, self.yte, FEDFUNDS)
-        self.delta = getDelta(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
-        self.gamma = getGamma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.vega = getVega(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.theta = getTheta(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
-        self.rho = getRho(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
-        self.charm = getCharm(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS, self.iscall)
-        self.vanna = getVanna(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.vomma = getVomma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.veta  = getVeta(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.speed = getSpeed(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.zomma = getZomma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.color = getColor(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
-        self.ultima = getUltima(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.bsiv = 0.000001
+        self.bawiv = baw_implied_vol(self.midprice, self.strike, self.underlying_price, self.yte, FEDFUNDS, 0.0, self.iscall)
+        self.biniv = binomial_implied_vol(self.midprice, self.strike, self.underlying_price, self.yte, FEDFUNDS, 0.0, self.iscall)
         self.intrinsic_value = 0.0
         if self.iscall:
+            self.bsiv = bsimplied_volatility_call(self.midprice, self.underlying_price, self.strike, self.yte, FEDFUNDS)
+           
             self.intrinsic_value = max(self.underlying_price - self.strike, 0)
         else:
+            self.bsiv = bsimplied_volatility_put(self.midprice, self.underlying_price, self.strike, self.yte, FEDFUNDS)
             self.intrinsic_value = max(self.strike - self.underlying_price, 0)
         self.time_value = max(self.midprice - self.intrinsic_value, 0)
+        self.delta = getDelta(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS, self.iscall)
+        self.gamma = getGamma(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.vega = getVega(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.theta = getTheta(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS, self.iscall)
+        self.rho = getRho(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS, self.iscall)
+        self.charm = getCharm(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS, self.iscall)
+        self.vanna = getVanna(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.vomma = getVomma(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.veta  = getVeta(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.speed = getSpeed(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.zomma = getZomma(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.color = getColor(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)
+        self.ultima = getUltima(self.underlying_price, self.strike, self.yte, self.bsiv, FEDFUNDS)        
 
     def __repr__(self):
         return (
@@ -69,12 +70,12 @@ class OptionContract:
             f"Strike={self.strike:.2f} "
             f"Mid={self.midprice:.2f} "
             f"YtE={self.yte:.4f}>\n"
-            f"  IV={self.iv:.4f} | Delta={self.delta:.4f} | Gamma={self.gamma:.6f} | "
+            f"  bsIV={self.bsiv:.4f} | Delta={self.delta:.4f} | Gamma={self.gamma:.6f} | "
             f"Vega={self.vega:.4f} | Theta={self.theta:.4f} | Rho={self.rho:.4f}\n"
             f"  Charm={self.charm:.6f} | Vanna={self.vanna:.6f} | Vomma={self.vomma:.6f} | "
             f"Veta={self.veta:.6f}\n"
             f"  Speed={self.speed:.6f} | Zomma={self.zomma:.6f} | Color={self.color:.6f} | "
-            f"Ultima={self.ultima:.6f} | Intrinsic Value={self.intrinsic_value:.2f} | Time Value={self.time_value:.2f}>"
+            f"Ultima={self.ultima:.6f} | Intrinsic Value={self.bsintrinsic_value:.2f} | Time Value={self.bstime_value:.2f}>"
         )
 
 class OptionExpiry:
@@ -151,6 +152,7 @@ def getChainFromCsv(csvname):
 
     return OptionChain(ticker, expiries)
 
+# Black-Scholes-Merton Model
 def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
     if sigma == 0 or T == 0:
         return max(0.0, S - K)
@@ -158,13 +160,11 @@ def bs_call_price(S, K, T, sigma, r=FEDFUNDS):
     d2 = d1 - sigma * math.sqrt(T)
     return S * norm.cdf(d1) - K * math.exp(-r*T) * norm.cdf(d2)
 
-def implied_volatility_call(C_market, S, K, T, r=FEDFUNDS):
-    # Define function whose root is the implied volatility
+def bsimplied_volatility_call(C_market, S, K, T, r=FEDFUNDS):
     f = lambda sigma: bs_call_price(S, K, T, r, sigma) - C_market
-    # Use Brent’s method to find root (sigma)
     try:
-        iv = brentq(f, 1e-6, 5)  # volatility between 0.000001 and 500%
-    except Exception:
+        iv = brentq(f, MINIV, MAXIV)
+    except (ValueError, OverflowError, ZeroDivisionError):
         iv = 0.000001
     return iv
 
@@ -175,11 +175,11 @@ def bs_put_price(S, K, T, sigma, r=FEDFUNDS):
     d2 = d1 - sigma * math.sqrt(T)
     return K * math.exp(-r*T) * norm.cdf(-d2) - S * norm.cdf(-d1)
 
-def implied_volatility_put(P_market, S, K, T, r=FEDFUNDS):
+def bsimplied_volatility_put(P_market, S, K, T, r=FEDFUNDS):
     f = lambda sigma: bs_put_price(S, K, T, r, sigma) - P_market
     try:
-        iv = brentq(f, 1e-6, 5)  # volatility between 0.0001% and 500%
-    except Exception:
+        iv = brentq(f, MINIV, MAXIV)
+    except (ValueError, OverflowError, ZeroDivisionError):
         iv = 0.000001
     return iv
 
@@ -189,6 +189,79 @@ def bs_d1_d2(S, K, T, sigma, r=FEDFUNDS):
     d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
     d2 = d1 - sigma * math.sqrt(T)
     return d1, d2
+
+# Barone-Adesi & Whaley (1987) approximation for American options.
+def baw_price(S, K, T, r, q, sigma, is_call=True):
+    if T < 1e-8:
+        return max(0.0, (S - K) if is_call else (K - S))
+
+    d1 = (math.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+
+    if is_call and q == 0:  # dividend-free call = European
+        return S * math.exp(-q * T) * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+
+    # Critical stock price computation
+    M = 2 * r / sigma**2
+    N = 2 * (r - q) / sigma**2
+    K1 = 1 - math.exp(-r * T) * norm.cdf(d2)
+    if is_call:
+        q2 = (-(N - 1) + math.sqrt((N - 1)**2 + 4 * M / K1)) / 2
+        S_crit = K / (1 - 1/q2)
+    else:
+        q2 = (-(N - 1) - math.sqrt((N - 1)**2 + 4 * M / K1)) / 2
+        S_crit = K / (1 - 1/q2)
+
+    # If not in early exercise region, use European
+    euro_price = (S * math.exp(-q * T) * norm.cdf(d1) - 
+                  K * math.exp(-r * T) * norm.cdf(d2)) if is_call else \
+                 (K * math.exp(-r * T) * norm.cdf(-d2) - 
+                  S * math.exp(-q * T) * norm.cdf(-d1))
+    if (is_call and S < S_crit) or (not is_call and S > S_crit):
+        return euro_price
+
+    # Otherwise add early exercise premium
+    A = (S_crit / q2) * (1 - math.exp(-q * T) * norm.cdf(d1))
+    return euro_price + A * ((S / S_crit) ** q2)
+
+def baw_implied_vol(market_price, S, K, T, r, q, is_call=True):
+    f = lambda sigma: baw_price(S, K, T, r, q, sigma, is_call) - market_price
+    try:
+        return brentq(f, MINIV, MAXIV)
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.000001
+
+# Binomial tree pricing for European/American options.
+def binomial_price(S, K, T, r, q, sigma, steps=200, is_call=True, american=True):
+    dt = T / steps
+    u = math.exp(sigma * math.sqrt(dt))
+    d = 1 / u
+    p = (math.exp((r - q) * dt) - d) / (u - d)
+    disc = math.exp(-r * dt)
+
+    # stock prices at maturity
+    ST = [S * (u ** j) * (d ** (steps - j)) for j in range(steps + 1)]
+    if is_call:
+        values = [max(0, s - K) for s in ST]
+    else:
+        values = [max(0, K - s) for s in ST]
+
+    # backward induction
+    for i in range(steps - 1, -1, -1):
+        for j in range(i + 1):
+            values[j] = disc * (p * values[j + 1] + (1 - p) * values[j])
+            if american:
+                ST_ij = S * (u ** j) * (d ** (i - j))
+                exercise = (max(0, ST_ij - K) if is_call else max(0, K - ST_ij))
+                values[j] = max(values[j], exercise)
+    return values[0]
+
+def binomial_implied_vol(market_price, S, K, T, r, q, is_call=True, american=True, steps=200):
+    f = lambda sigma: binomial_price(S, K, T, r, q, sigma, steps, is_call, american) - market_price
+    try:
+        return brentq(f, MINIV, MAXIV)
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.000001
 
 def getDelta(S, K, T, sigma, r=FEDFUNDS, is_call=True):
     d1, _ = bs_d1_d2(S, K, T, sigma, r)
@@ -396,7 +469,7 @@ def scrapeEntireChain(ticker, url, csvname):
         writer.writerow([
             "expiry", "yte", "underlying", "symbol", "underlying_price", "strike", "call_or_put",
             "last", "bid", "ask", "volume", "open_interest",
-            "iv", "delta", "gamma", "vega", "theta", "rho",
+            "bs_iv", "baw_iv", "bin_iv", "delta", "gamma", "vega", "theta", "rho",
             "charm", "vanna", "vomma", "veta", "speed", "zomma", "color", "ultima",
             "intrinsic_value", "time_value"
         ])
@@ -405,7 +478,7 @@ def scrapeEntireChain(ticker, url, csvname):
                 writer.writerow([
                     expiry.date, f"{c.yte:.4f}", c.underlying, c.symbol, c.underlying_price, c.strike, "Call",
                     c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest,
-                    c.iv, c.delta, c.gamma, c.vega, c.theta, c.rho,
+                    c.bsiv, c.bawiv, c.biniv, c.delta, c.gamma, c.vega, c.theta, c.rho,
                     c.charm, c.vanna, c.vomma, c.veta, c.speed, c.zomma, c.color, c.ultima,
                     c.intrinsic_value, c.time_value
                 ])
@@ -413,12 +486,12 @@ def scrapeEntireChain(ticker, url, csvname):
                 writer.writerow([
                     expiry.date, f"{p.yte:.4f}", p.underlying, p.symbol, p.underlying_price, p.strike, "Put",
                     p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest,
-                    p.iv, p.delta, p.gamma, p.vega, p.theta, p.rho,
+                    p.bsiv, p.bawiv, p.biniv, p.delta, p.gamma, p.vega, p.theta, p.rho,
                     p.charm, p.vanna, p.vomma, p.veta, p.speed, p.zomma, p.color, p.ultima,
                     p.intrinsic_value, p.time_value
                 ])
 
-    print(f"scr/utils.py :: Saved {ticker} option chain to {csvname}")
+    print(f"scr/utils.py :: Successfully saved {ticker} option chain to {csvname}")
 
 def plotChainIvCurve(ticker, csvname, pngname):
     if not os.path.exists(csvname):

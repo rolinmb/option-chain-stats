@@ -12,10 +12,12 @@ TABLEHEADERS = [
 ]
 TRADINGDAYS = 252
 FEDFUNDS = 0.0408
-MODES = ["iv", "delta", "gamma", "vega", "theta",
+MODES = ["bs_iv", "baw_iv", "bin_iv", "delta", "gamma", "vega", "theta",
     "rho", "charm", "vanna", "vomma", "veta", "speed",
     "zomma", "color", "ultima", "time_value"]
 PORT = 8080
+MINIV = 1e-6
+MAXIV = 5.0
 
 if __name__ == "__main__":
     pass
