@@ -26,5 +26,23 @@ class PolygonAPI:
         plt.savefig(pngname, dpi=150)
         plt.close()
 
+    def getEquityChart(self, ticker, timeframe, fromdate, todate, ncandles, pngname):
+        url = f"{POLYGONURL1}{ticker}/range/1/{timeframe}/{fromdate}/{todate}{POLYGONURL2}{ncandles}&apiKey={self.apikey}"
+        response = requests.get(url)
+        data = json.loads(response.text)
+        closes = [entry["c"] for entry in data["results"]]
+        timestamps = [datetime.fromtimestamp(entry["t"] / 1000) for entry in data["results"]]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(timestamps, closes, marker="o", linestyle="-")
+        plt.title(f"{ticker} Close Price History")
+        plt.xlabel("Date")
+        plt.ylabel("Close Price")
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(pngname, dpi=150)
+        plt.close()
+
 if __name__ == "__main__":
     pass

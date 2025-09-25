@@ -36,6 +36,7 @@ if __name__ == "__main__":
     #for mode in MODES:
     #    plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
     
-    polygon = PolygonAPI(POLYGONKEY)
-    option_symbol = "NVDA250926C00175000"
-    polygon.getOptionChart(option_symbol, "day", "2025-01-01", "2025-09-24", 100, f"img/{option_symbol}.png")
+    #polygon = PolygonAPI(POLYGONKEY)
+    #option_symbol = "NVDA250926C00175000"
+    #polygon.getOptionChart(option_symbol, "day", "2025-01-01", "2025-09-24", 100, f"img/{option_symbol}.png")
+    #polygon.getEquityChart(ticker, "day", "2025-04-01", "2025-09-24", 100, f"img/{ticker}.png")
