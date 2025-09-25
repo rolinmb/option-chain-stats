@@ -1,5 +1,5 @@
-from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface, getChainFromCsv
-from consts import DIRS, MODES, BASEURL, URLP2
+from utils import *
+from consts import DIRS, MODES, BASEURL, URLP2, FVURL
 from polygon import PolygonAPI
 from key import POLYGONKEY
 import sys
@@ -26,12 +26,14 @@ def startupRoutine():
 
 if __name__ == "__main__":
     ticker = startupRoutine()
+
+    scrapeUnderlyingInfo(ticker, f"{FVURL}{ticker}", f"data/{ticker}info.csv")
     
-    #scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
+    scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
 
-    #plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
+    plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
 
-    #scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
+    scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
 
     for mode in MODES:
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
@@ -42,11 +44,3 @@ if __name__ == "__main__":
     polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolc}.png")
     polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolp}.png")
     polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"img/{ticker}.png")
-    """
-    chain = getChainFromCsv(f"data/{ticker}chain.csv")
-    for e in chain.expiries:
-        for c in e.calls:
-            print(f"{c}")
-        for p in e.puts:
-            print(f"{p}")
-    """

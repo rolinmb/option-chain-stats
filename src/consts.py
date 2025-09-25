@@ -1,4 +1,5 @@
 DIRS = ["data", "img"]
+FVURL = "https://finviz.com/quote.ashx?t="
 BASEURL = "https://optioncharts.io/options/"
 URLP2 = "/option-chain"
 URLP3 = "?option_type=all&expiration_dates="
@@ -18,6 +19,14 @@ MODES = ["bs_iv", "baw_iv", "bin_iv", "delta", "gamma", "vega", "theta",
 PORT = 8080
 MINIV = 1e-6
 MAXIV = 5.0
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/118.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Referer": "https://finviz.com/"
+}
 
 if __name__ == "__main__":
     pass
