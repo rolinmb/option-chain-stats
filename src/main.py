@@ -1,7 +1,7 @@
 from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface
 from consts import DIRS, MODES, BASEURL, URLP2
 from polygon import PolygonAPI
-from key import POLYGONKEY
+#from key import POLYGONKEY
 import sys
 import os
 
