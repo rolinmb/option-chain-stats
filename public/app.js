@@ -2,7 +2,6 @@ async function fetchFileList(path) {
       // Uses directory listing if Flask or http.server exposes it.
       let res = await fetch(path);
       let text = await res.text();
-
       // Parse file links out of the directory listing (simple regex)
       let matches = [...text.matchAll(/href="([^"]+)"/g)];
       return matches.map(m => m[1]).filter(f => !f.startsWith("?") && !f.startsWith("/"));

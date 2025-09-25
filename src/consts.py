@@ -16,7 +16,6 @@ MODES = ["iv", "delta", "gamma", "vega", "theta",
     "rho", "charm", "vanna", "vomma", "veta", "speed",
     "zomma", "color", "ultima"]
 PORT = 8080
-DIRECTORY = "."
 
 if __name__ == "__main__":
     pass
