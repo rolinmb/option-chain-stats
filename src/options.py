@@ -1,5 +1,6 @@
 from consts import TRADINGDAYS, FEDFUNDS, MINIV, MAXIV
 import os
+import re
 import math
 import pandas as pd
 from scipy.stats import norm
@@ -77,6 +78,26 @@ class OptionExpiry:
             f"calls={len(self.calls)} contracts, "
             f"puts={len(self.puts)} contracts)"
         )
+
+class UnderlyingAsset:
+    def __init__(self, ticker, csvname):
+        if not os.path.exists(csvname):
+            print(f"src/options.py :: {csvname} does not exist; cannot build Underlying Asset")
+            return
+        self.underlying = ticker
+        self.divyield = 0.0
+        tempdf = pd.read_csv(csvname)
+        tempdf = tempdf.set_index("Label")
+        dividend_ttm = tempdf.loc["Dividend TTM", "Value"]
+        match = re.search(r"\((.*?)\)", dividend_ttm)
+        divyield_text = match.group(1) if match else "0.0%"
+        self.divyield = float(divyield_text.split("%")[0]) / 100
+        price = tempdf.loc["Price", "Value"].replace(",", "")
+        percent_change = tempdf.loc["Change", "Value"].replace(",", "")
+        dollar_change = tempdf.loc["$ Change", "Value"].replace(",",  "")
+        self.price = float(price)
+        self.pchange = float(percent_change.split("%")[0]) / 100
+        self.change = float(dollar_change)
 
 class OptionChain:
     def __init__(self, ticker, expiries=None):

@@ -42,7 +42,7 @@ def scrapeUnderlyingInfo(ticker, url, csvname):
     ])
 
     if not spans:
-        print(f"src/utils.py :: Ticker {ticker} is invalid.\n")
+        print(f"src/utils.py :: Ticker {ticker} is invalid")
         sys.exit()
 
     dollar_change = spans[0].get_text(strip=True)
@@ -56,7 +56,7 @@ def scrapeUnderlyingInfo(ticker, url, csvname):
         writer.writerows(pairs)
     
     response.close()
-    print(f"src/utils.py :: Successfully webscraped to create {csvname}")
+    print(f"src/utils.py :: Successfully webscraped finviz.com for {ticker} to create {csvname}")
 
 
 def scrapeChainStats(ticker, url, csvname):
