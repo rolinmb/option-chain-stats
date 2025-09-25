@@ -1,5 +1,7 @@
 from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface
 from consts import DIRS, MODES, BASEURL, URLP2
+from polygon import PolygonAPI
+from key import POLYGONKEY
 import sys
 import os
 
@@ -25,11 +27,15 @@ def startupRoutine():
 if __name__ == "__main__":
     ticker = startupRoutine()
 
-    scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
+    #scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
 
-    plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
+    #plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
 
-    scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
+    #scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
 
-    for mode in MODES:
-        plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
+    #for mode in MODES:
+    #    plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
+    
+    polygon = PolygonAPI(POLYGONKEY)
+    option_symbol = "NVDA250926C00175000"
+    polygon.getOptionChart(option_symbol, "day", "2025-01-01", "2025-09-24", 100, f"img/{option_symbol}.png")
