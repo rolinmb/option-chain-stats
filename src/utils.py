@@ -55,6 +55,12 @@ class OptionContract:
         self.zomma = getZomma(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
         self.color = getColor(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
         self.ultima = getUltima(self.underlying_price, self.strike, self.yte, self.iv, FEDFUNDS)
+        self.intrinsic_value = 0.0
+        if self.iscall:
+            self.intrinsic_value = max(self.underlying_price - self.strike, 0)
+        else:
+            self.intrinsic_value = max(self.strike - self.underlying_price, 0)
+        self.time_value = max(self.midprice - self.intrinsic_value, 0)
 
     def __repr__(self):
         return (
@@ -68,9 +74,8 @@ class OptionContract:
             f"  Charm={self.charm:.6f} | Vanna={self.vanna:.6f} | Vomma={self.vomma:.6f} | "
             f"Veta={self.veta:.6f}\n"
             f"  Speed={self.speed:.6f} | Zomma={self.zomma:.6f} | Color={self.color:.6f} | "
-            f"Ultima={self.ultima:.6f}>"
+            f"Ultima={self.ultima:.6f} | Intrinsic Value={self.intrinsic_value:.2f} | Time Value={self.time_value:.2f}>"
         )
-
 
 class OptionExpiry:
     def __init__(self, ticker, date, yte, calls=None, puts=None):
@@ -346,25 +351,28 @@ def scrapeEntireChain(ticker, url, csvname):
     with open(csvname, mode="w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
-            "expiry", "underlying", "symbol", "underlying_price", "strike", "call_or_put",
+            "expiry", "yte", "underlying", "symbol", "underlying_price", "strike", "call_or_put",
             "last", "bid", "ask", "volume", "open_interest",
-            "iv", "delta", "gamma", "vega", "theta", "rho", "yte",
-            "charm", "vanna", "vomma", "veta", "speed", "zomma", "color", "ultima"
+            "iv", "delta", "gamma", "vega", "theta", "rho",
+            "charm", "vanna", "vomma", "veta", "speed", "zomma", "color", "ultima",
+            "intrinsic_value", "time_value"
         ])
         for expiry in option_chain.expiries:
             for c in expiry.calls:
                 writer.writerow([
-                    expiry.date, c.underlying, c.symbol, c.underlying_price, c.strike, "Call",
+                    expiry.date, f"{c.yte:.4f}", c.underlying, c.symbol, c.underlying_price, c.strike, "Call",
                     c.midprice, c.bidprice, c.askprice, c.volume, c.openinterest,
-                    c.iv, c.delta, c.gamma, c.vega, c.theta, c.rho, f"{c.yte:.4f}",
-                    c.charm, c.vanna, c.vomma, c.veta, c.speed, c.zomma, c.color, c.ultima
+                    c.iv, c.delta, c.gamma, c.vega, c.theta, c.rho,
+                    c.charm, c.vanna, c.vomma, c.veta, c.speed, c.zomma, c.color, c.ultima,
+                    c.intrinsic_value, c.time_value
                 ])
             for p in expiry.puts:
                 writer.writerow([
-                    expiry.date, p.underlying, p.symbol, p.underlying_price, p.strike, "Put",
+                    expiry.date, f"{p.yte:.4f}", p.underlying, p.symbol, p.underlying_price, p.strike, "Put",
                     p.midprice, p.bidprice, p.askprice, p.volume, p.openinterest,
-                    p.iv, p.delta, p.gamma, p.vega, p.theta, p.rho, f"{p.yte:.4f}",
-                    p.charm, p.vanna, p.vomma, p.veta, p.speed, p.zomma, p.color, p.ultima
+                    p.iv, p.delta, p.gamma, p.vega, p.theta, p.rho,
+                    p.charm, p.vanna, p.vomma, p.veta, p.speed, p.zomma, p.color, p.ultima,
+                    p.intrinsic_value, p.time_value
                 ])
 
     print(f"scr/utils.py :: Saved {ticker} option chain to {csvname}")

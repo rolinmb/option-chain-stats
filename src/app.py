@@ -2,7 +2,7 @@
 import os
 import subprocess
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import pandas as pd
 
