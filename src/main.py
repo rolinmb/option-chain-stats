@@ -1,7 +1,7 @@
 from utils import scrapeChainStats, scrapeEntireChain, plotChainIvCurve, plotChainSurface
 from consts import DIRS, MODES, BASEURL, URLP2
 from polygon import PolygonAPI
-#from key import POLYGONKEY
+from key import POLYGONKEY
 import sys
 import os
 
@@ -36,7 +36,9 @@ if __name__ == "__main__":
     for mode in MODES:
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
     
-    #polygon = PolygonAPI(POLYGONKEY)
-    #option_symbol = "NVDA250926C00175000"
-    #polygon.getOptionChart(option_symbol, "day", "2025-01-01", "2025-09-24", 100, f"img/{option_symbol}.png")
-    #polygon.getEquityChart(ticker, "day", "2025-04-01", "2025-09-24", 100, f"img/{ticker}.png")
+    polygon = PolygonAPI(POLYGONKEY)
+    option_symbolc = "NVDA250926C00175000" # NVDA 2025-09-26 $175 Call
+    option_symbolp = "NVDA250926P00175000" # NVDA 2025-09-26 $175 Put
+    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-24", 365, f"img/{option_symbolc}.png")
+    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-24", 365, f"img/{option_symbolp}.png")
+    polygon.getEquityChart(ticker, "day", "2025-01-01", "2025-09-24", 365, f"img/{ticker}.png")
