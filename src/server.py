@@ -1,8 +1,6 @@
+from consts import PORT, DIRECTORY
 import http.server
 import socketserver
-
-PORT = 8080
-DIRECTORY = "."
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
