@@ -1,4 +1,5 @@
 from consts import POLYGONURL1, POLYGONURL2
+import csv
 import json
 import requests
 from datetime import datetime
@@ -8,7 +9,7 @@ class PolygonAPI:
     def __init__(self, apikey):
         self.apikey = apikey
 
-    def getOptionChart(self, option_symbol, timeframe, fromdate, todate, ncandles, pngname):
+    def getOptionChart(self, option_symbol, timeframe, fromdate, todate, ncandles, csvname, pngname):
         url = f"{POLYGONURL1}O:{option_symbol}/range/1/{timeframe}/{fromdate}/{todate}{POLYGONURL2}{ncandles}&apiKey={self.apikey}"
         response = requests.get(url)
         data = json.loads(response.text)
@@ -20,6 +21,9 @@ class PolygonAPI:
             return
         
         timestamps = [datetime.fromtimestamp(entry["t"] / 1000) for entry in data["results"]]
+
+        writeCandlesCsv(data, csvname)
+        print(f"src/polygon.py :: Successfully saved contract {option_symbol} candlestick data to {csvname}")
 
         plt.figure(figsize=(10, 6))
         plt.plot(timestamps, closes, marker="o", linestyle="-")
@@ -33,7 +37,7 @@ class PolygonAPI:
         plt.close()
         print(f"src/polygon.py :: Successfully created option chart {pngname}")
 
-    def getUnderlyingChart(self, ticker, timeframe, fromdate, todate, ncandles, pngname):
+    def getUnderlyingChart(self, ticker, timeframe, fromdate, todate, ncandles, csvname, pngname):
         url = f"{POLYGONURL1}{ticker}/range/1/{timeframe}/{fromdate}/{todate}{POLYGONURL2}{ncandles}&apiKey={self.apikey}"
         response = requests.get(url)
         data = json.loads(response.text)
@@ -46,6 +50,9 @@ class PolygonAPI:
 
         timestamps = [datetime.fromtimestamp(entry["t"] / 1000) for entry in data["results"]]
 
+        writeCandlesCsv(data, csvname)
+        print(f"src/polygon.py :: Successfully saved underlying {ticker} candlestick data to {csvname}")
+
         plt.figure(figsize=(10, 6))
         plt.plot(timestamps, closes, marker="o", linestyle="-")
         plt.title(f"{ticker} Close Price History")
@@ -57,6 +64,27 @@ class PolygonAPI:
         plt.savefig(pngname, dpi=150)
         plt.close()
         print(f"src/polygon.py :: Successfully created underlying chart {pngname}")
+
+def writeCandlesCsv(data, csvname):
+    if not data.get("results"):
+        print(f"src/polygon.py :: No data to save for {csvname}")
+        return
+    
+    with open(csvname, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Date", "Open", "High", "Low", "Close", "Volume", "VWAP", "Transactions"])
+        for entry in data["results"]:
+            writer.writerow([
+                datetime.fromtimestamp(entry["t"] / 1000),  # convert ms → datetime
+                entry.get("o", ""),  # open
+                entry.get("h", ""),  # high
+                entry.get("l", ""),  # low
+                entry.get("c", ""),  # close
+                entry.get("v", ""),  # volume
+                entry.get("vw", ""), # volume-weighted avg price
+                entry.get("n", ""),  # number of transactions
+            ])
+
 
 if __name__ == "__main__":
     pass

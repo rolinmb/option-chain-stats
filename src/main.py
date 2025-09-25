@@ -42,6 +42,6 @@ if __name__ == "__main__":
     polygon = PolygonAPI(POLYGONKEY)
     option_symbolc = f"{ticker}250926C00100000" # Ticker 2025-09-26 $100 Call
     option_symbolp = f"{ticker}250926P00100000" # Ticker 2025-09-26 $100 Put
-    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolc}.png")
-    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolp}.png")
-    polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"img/{ticker}.png")
+    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"data/{option_symbolc}ohlc.csv", f"img/{option_symbolc}.png")
+    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"data/{option_symbolp}ohlc.csv", f"img/{option_symbolp}.png")
+    polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"data/{ticker}ohlc.csv", f"img/{ticker}.png")
