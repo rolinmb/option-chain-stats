@@ -28,17 +28,13 @@ def startupRoutine():
 if __name__ == "__main__":
     ticker = startupRoutine()
     
-    #scrapeUnderlyingInfo(ticker, f"{FVURL}{ticker}", f"data/{ticker}info.csv")
+    scrapeUnderlyingInfo(ticker, f"{FVURL}{ticker}", f"data/{ticker}info.csv")
     
-    underlying_asset = UnderlyingAsset(ticker, f"data/{ticker}info.csv")
-    print(f"src/main.py :: Underlying Asset ({ticker}) Price: {underlying_asset.price}")
-    print(f"src/main.py :: Dividend Yield: {underlying_asset.divyield} %Change: {underlying_asset.pchange} $Change: {underlying_asset.change}")
-    """
     scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
 
     plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
 
-    scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
+    chain = scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv", f"data/{ticker}")
 
     for mode in MODES:
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
@@ -49,4 +45,3 @@ if __name__ == "__main__":
     polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolc}.png")
     polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"img/{option_symbolp}.png")
     polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"img/{ticker}.png")
-    """

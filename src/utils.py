@@ -1,5 +1,5 @@
 from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, MODES, HEADERS
-from options import OptionContract, OptionExpiry, OptionChain
+from options import OptionContract, OptionExpiry, OptionChain, UnderlyingAsset
 import os
 import re
 import sys
@@ -87,7 +87,7 @@ def scrapeChainStats(ticker, url, csvname):
     
     print(f"src/utils.py :: Successfully webscraped {ticker} option data table to {csvname}")
     
-def scrapeEntireChain(ticker, url, csvname):
+def scrapeEntireChain(ticker, url, csvname, underlying_csvname):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=OPTIONS)
     driver.get(url)
     # Give time for JavaScript to load
@@ -109,7 +109,6 @@ def scrapeEntireChain(ticker, url, csvname):
 
     spans = driver.find_elements(By.CSS_SELECTOR, ".tw-text-3xl.tw-font-semibold")
     price_string = spans[1].text.strip()
-    print(f"src/utils.py :: Scraped Underlying price: {price_string}")
     labels = driver.find_elements(
         By.CSS_SELECTOR, "label.tw-ml-3.tw-min-w-0.tw-flex-1.tw-text-gray-600"
     )
@@ -184,7 +183,10 @@ def scrapeEntireChain(ticker, url, csvname):
         print(f"src/utils.py :: Processed Calls and Puts for expiration {formatted_expiration_dates[i]}")
         expiries.append(OptionExpiry(ticker, formatted_expiration_dates[i], exp_in_years[i], calls, puts))
 
-    option_chain = OptionChain(ticker, expiries)
+    underlying_asset = UnderlyingAsset(ticker, f"data/{ticker}info.csv")
+    option_chain = OptionChain(ticker, underlying_asset, expiries)
+    print(f"src/utils.py :: Underlying Asset ({option_chain.underlying_asset.underlying}) Price: {option_chain.underlying_asset.price}")
+    print(f"src/utils.py :: Dividend Yield: {option_chain.underlying_asset.divyield} %Change: {option_chain.underlying_asset.pchange} $Change: {option_chain.underlying_asset.change}")
     with open(csvname, mode="w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -213,6 +215,7 @@ def scrapeEntireChain(ticker, url, csvname):
                 ])
 
     print(f"scr/utils.py :: Successfully saved {ticker} option chain to {csvname}")
+    return option_chain
 
 def plotChainIvCurve(ticker, csvname, pngname):
     if not os.path.exists(csvname):

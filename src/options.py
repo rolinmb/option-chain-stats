@@ -100,8 +100,9 @@ class UnderlyingAsset:
         self.change = float(dollar_change)
 
 class OptionChain:
-    def __init__(self, ticker, expiries=None):
+    def __init__(self, ticker, underlying_asset, expiries=None):
         self.underlying = ticker
+        self.underlying_asset = underlying_asset
         self.expiries = expiries if expiries is not None else []
 
     def __repr__(self):
