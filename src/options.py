@@ -276,7 +276,10 @@ def getDelta(S, K, T, sigma, r=FEDFUNDS, is_call=True):
 
 def getGamma(S, K, T, sigma, r=FEDFUNDS):
     d1, _ = bs_d1_d2(S, K, T, sigma, r)
-    return norm.pdf(d1) / (S * sigma * math.sqrt(T))
+    try:
+        return norm.pdf(d1) / (S * sigma * math.sqrt(T))
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0
 
 def getVega(S, K, T, sigma, r=FEDFUNDS):
     d1, _ = bs_d1_d2(S, K, T, sigma, r)
@@ -284,13 +287,16 @@ def getVega(S, K, T, sigma, r=FEDFUNDS):
 
 def getTheta(S, K, T, sigma, r=FEDFUNDS, is_call=True):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
-    first_term = -(S * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
-    if is_call:
-        second_term = -r * K * math.exp(-r*T) * norm.cdf(d2)
-        return (first_term + second_term) / TRADINGDAYS  # per day
-    else:
-        second_term = r * K * math.exp(-r*T) * norm.cdf(-d2)
-        return (first_term + second_term) / TRADINGDAYS
+    try:
+        first_term = -(S * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
+        if is_call:
+            second_term = -r * K * math.exp(-r*T) * norm.cdf(d2)
+            return (first_term + second_term) / TRADINGDAYS  # per day
+        else:
+            second_term = r * K * math.exp(-r*T) * norm.cdf(-d2)
+            return (first_term + second_term) / TRADINGDAYS
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0
 
 def getRho(S, K, T, sigma, r=FEDFUNDS, is_call=True):
     _, d2 = bs_d1_d2(S, K, T, sigma, r)
@@ -303,10 +309,13 @@ def getCharm(S, K, T, sigma, r=FEDFUNDS, is_call=True):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
     if T <= 0: return 0.0
     first_term = -norm.pdf(d1) * (2*r*T - d2*sigma*math.sqrt(T)) / (2*T*sigma*math.sqrt(T))
-    if is_call:
-        return first_term - r*math.exp(-r*T)*norm.cdf(d2)
-    else:
-        return first_term + r*math.exp(-r*T)*norm.cdf(-d2)
+    try:
+        if is_call:
+            return first_term - r*math.exp(-r*T)*norm.cdf(d2)
+        else:
+            return first_term + r*math.exp(-r*T)*norm.cdf(-d2)
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0
 
 def getVanna(S, K, T, sigma, r=FEDFUNDS):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
@@ -320,12 +329,18 @@ def getVomma(S, K, T, sigma, r=FEDFUNDS):
 def getVeta(S, K, T, sigma, r=FEDFUNDS):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
     v = getVega(S, K, T, sigma, r) * 100.0
-    return -v * (r + (d1*d2) / (2*T))
+    try:
+        return -v * (r + (d1*d2) / (2*T))
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0
 
 def getSpeed(S, K, T, sigma, r=FEDFUNDS):
     d1, _ = bs_d1_d2(S, K, T, sigma, r)
     g = getGamma(S, K, T, sigma, r)
-    return -g * (d1 / (S * sigma * math.sqrt(T)))
+    try:
+        return -g * (d1 / (S * sigma * math.sqrt(T)))
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0
 
 def getZomma(S, K, T, sigma, r=FEDFUNDS):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
@@ -335,9 +350,15 @@ def getZomma(S, K, T, sigma, r=FEDFUNDS):
 def getColor(S, K, T, sigma, r=FEDFUNDS):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
     g = getGamma(S, K, T, sigma, r)
-    return -g * (2*r*T + 1 + d1*d2) / (2*T)
+    try:
+        return -g * (2*r*T + 1 + d1*d2) / (2*T)
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0
 
 def getUltima(S, K, T, sigma, r=FEDFUNDS):
     d1, d2 = bs_d1_d2(S, K, T, sigma, r)
     v = getVega(S, K, T, sigma, r) * 100.0
-    return -v * (d1*d2*(1 - d1*d2) + d1**2 + d2**2) / sigma**2
+    try:
+        return -v * (d1*d2*(1 - d1*d2) + d1**2 + d2**2) / sigma**2
+    except (ValueError, OverflowError, ZeroDivisionError):
+        return 0.0

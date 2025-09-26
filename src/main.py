@@ -40,8 +40,8 @@ if __name__ == "__main__":
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
     
     polygon = PolygonAPI(POLYGONKEY)
-    option_symbolc = f"{ticker}250926C00100000" # Ticker 2025-09-26 $100 Call
-    option_symbolp = f"{ticker}250926P00100000" # Ticker 2025-09-26 $100 Put
+    option_symbolc = f"{ticker}251003C00100000" # Ticker 2025-10-03 $100 Call
+    option_symbolp = f"{ticker}251003P00100000" # Ticker 2025-10-03 $100 Put
     polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"data/{option_symbolc}ohlc.csv", f"img/{option_symbolc}.png")
     polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"data/{option_symbolp}ohlc.csv", f"img/{option_symbolp}.png")
     polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"data/{ticker}ohlc.csv", f"img/{ticker}.png")
