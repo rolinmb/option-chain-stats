@@ -27,7 +27,7 @@ def startupRoutine():
 
 if __name__ == "__main__":
     ticker = startupRoutine()
-    
+    """
     scrapeUnderlyingInfo(ticker, f"{FVURL}{ticker}", f"data/{ticker}info.csv")
     
     scrapeChainStats(ticker, f"{BASEURL}{ticker}", f"data/{ticker}stats.csv")
@@ -38,10 +38,13 @@ if __name__ == "__main__":
 
     for mode in MODES:
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")
-    
+    """
     polygon = PolygonAPI(POLYGONKEY)
+    """
     option_symbolc = f"{ticker}251003C00100000" # Ticker 2025-10-03 $100 Call
     option_symbolp = f"{ticker}251003P00100000" # Ticker 2025-10-03 $100 Put
-    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-25", 365, f"data/{option_symbolc}ohlc.csv", f"img/{option_symbolc}.png")
-    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-25", 365, f"data/{option_symbolp}ohlc.csv", f"img/{option_symbolp}.png")
-    polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-25", 365, f"data/{ticker}ohlc.csv", f"img/{ticker}.png")
+    polygon.getOptionChart(option_symbolc, "day", "2025-01-01", "2025-09-26", 365, f"data/{option_symbolc}ohlc.csv", f"img/{option_symbolc}.png")
+    polygon.getOptionChart(option_symbolp, "day", "2025-01-01", "2025-09-26", 365, f"data/{option_symbolp}ohlc.csv", f"img/{option_symbolp}.png")
+    polygon.getUnderlyingChart(ticker, "day", "2025-01-01", "2025-09-26", 365, f"data/{ticker}ohlc.csv", f"img/{ticker}.png")
+    """
+    polygon.getProjectionChart(ticker, f"data/{ticker}ohlc.csv", f"data/{ticker}stats.csv", f"img/{ticker}projection.png")
