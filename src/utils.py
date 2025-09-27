@@ -360,5 +360,14 @@ def getProjectionChart(ticker, ohlc_csvname, stats_csvname, pngname):
     plt.close()
     print(f"src/polygon.py :: Successfully created projection chart {pngname}")
 
+def getOptionSymbols(ticker, expiration_date, price):
+    closest_strike = round(price)
+    closest_strike_str = f"{int(closest_strike * 1000):08d}"
+    expiration_dt = datetime.strptime(expiration_date, "%Y-%m-%d")
+    expiration_str = expiration_dt.strftime("%y%m%d")
+    option_symbolc = f"{ticker}{expiration_str}C{closest_strike_str}"
+    option_symbolp = f"{ticker}{expiration_str}P{closest_strike_str}"
+    return option_symbolc, option_symbolp
+
 if __name__ == "__main__":
     pass
