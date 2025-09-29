@@ -1,4 +1,5 @@
 from consts import TRADINGDAYS, FEDFUNDS, MINIV, MAXIV
+from utils import *
 import os
 import re
 import math
@@ -112,6 +113,23 @@ class OptionChain:
             f"expiries={len(self.expiries)}, "
             f"dates={expiry_dates})"
         )
+    
+    def getAtmOptionSymbols(self):
+        c, p = getOptionSymbols(self.underlying, self.expiries[0].date, self.underlying_asset.price)
+        return c, p
+
+    def getOptionContract(self, symbol):
+        for e in self.expiries:
+            if "C" in symbol:
+                for c in e.calls:
+                    if c.symbol == symbol:
+                        return c
+            elif "P" in symbol:
+                for p in e.puts:
+                    if p.symbol == symbol:
+                        return p
+            else:
+                return None
 
 def getChainFromCsv(csvname):
     if not os.path.exists(csvname):
@@ -155,6 +173,14 @@ def getChainFromCsv(csvname):
         expiries.append(OptionExpiry(ticker, expiry_date, yte, calls=calls, puts=puts))
 
     return OptionChain(ticker, expiries)
+
+def getOptionSymbols(ticker, expiration_date, underlying_price, increment=1):
+    closest_strike = round(underlying_price / increment) * increment
+    closest_strike_str = f"{int(closest_strike * 1000):08d}"
+    expiration_str = expiration_date.replace("-", "")[2:]
+    option_symbolc = f"{ticker}{expiration_str}C{closest_strike_str}"
+    option_symbolp = f"{ticker}{expiration_str}P{closest_strike_str}"
+    return option_symbolc, option_symbolp
 
 # Black-Scholes-Merton Model
 def bs_call_price(S, K, T, sigma, r=FEDFUNDS):

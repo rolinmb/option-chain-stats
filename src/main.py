@@ -1,5 +1,4 @@
 from utils import *
-from options import UnderlyingAsset
 from consts import DIRS, MODES, BASEURL, URLP2, FVURL
 from polygon import PolygonAPI
 from key import POLYGONKEY
@@ -34,10 +33,12 @@ if __name__ == "__main__":
 
     plotChainIvCurve(ticker, f"data/{ticker}stats.csv", f"img/{ticker}iv.png")
     
-    chain = scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv", f"data/{ticker}")
-    closest_strike = round(chain.underlying_asset.price)
-    closest_expiration = chain.expiries[0].date
-    symbolc, symbolp = getOptionSymbols(ticker, closest_expiration, closest_strike)
+    chain = scrapeEntireChain(ticker, f"{BASEURL}{ticker}{URLP2}", f"data/{ticker}chain.csv")
+    symbolc, symbolp = chain.getAtmOptionSymbols()
+    call = chain.getOptionContract(symbolc)
+    print(f"src/main.py :: Call option {call.symbol} = {symbolc} successfully found")
+    put = chain.getOptionContract(symbolp)
+    print(f"src/main.py :: Put option {put.symbol} = {symbolp} successfully found")
     
     for mode in MODES:
         plotChainSurface(ticker, mode, f"data/{ticker}chain.csv", f"img/{ticker}c{mode}.png", f"img/{ticker}p{mode}.png")

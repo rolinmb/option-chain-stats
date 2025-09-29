@@ -1,5 +1,5 @@
 from consts import TABLEHEADERS, TRADINGDAYS, BASEURL, URLP2, URLP3, URLP4, MODES, HEADERS
-from options import OptionContract, OptionExpiry, OptionChain, UnderlyingAsset
+from options import OptionContract, OptionExpiry, OptionChain, UnderlyingAsset, getOptionSymbols
 import os
 import re
 import sys
@@ -87,7 +87,7 @@ def scrapeChainStats(ticker, url, csvname):
     
     print(f"src/utils.py :: Successfully webscraped {ticker} option data table to {csvname}")
     
-def scrapeEntireChain(ticker, url, csvname, underlying_csvname):
+def scrapeEntireChain(ticker, url, csvname):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=OPTIONS)
     driver.get(url)
     # Give time for JavaScript to load
@@ -145,8 +145,6 @@ def scrapeEntireChain(ticker, url, csvname, underlying_csvname):
         url = f"{BASEURL}{ticker}{URLP2}{URLP3}{formatted_expiration_dates[i]}:{wms[i]}{URLP4}"
         driver.get(url)
         time.sleep(3.0)
-        shortdate_parts = formatted_expiration_dates[i].split("-")
-        shortdate = shortdate_parts[0][2:]+shortdate_parts[1]+shortdate_parts[2]
         calls = []
         puts = []
         table = driver.find_element(By.CSS_SELECTOR, "table.table.table-sm.table-hover")
@@ -170,12 +168,8 @@ def scrapeEntireChain(ticker, url, csvname, underlying_csvname):
             pvol = cols[9]
             p_oi = cols[10]
 
-            # Make symbols like CHGG251121C00002000 = CHGG 2025-11-21 $2.00 call
-            strike_val = float(strike)            # e.g. "2.00" → 2.0
-            strike_int = int(strike_val * 1000)   # scale by 1000 → 2000
-            strike_str = f"{strike_int:08d}"
-            csymbol = f"{ticker}{shortdate}C{strike_str}"
-            psymbol = f"{ticker}{shortdate}P{strike_str}"
+            strike_val = float(strike.replace(",", ""))
+            csymbol, psymbol = getOptionSymbols(ticker, formatted_expiration_dates[i], strike_val)
 
             calls.append(OptionContract(ticker, csymbol, price_string, strike, exp_in_years[i], clast, cbid, cask, cvol, c_oi, True))
             puts.append(OptionContract(ticker, psymbol, price_string, strike, exp_in_years[i], plast, pbid, pask, pvol, p_oi, False))
@@ -359,15 +353,6 @@ def getProjectionChart(ticker, ohlc_csvname, stats_csvname, pngname):
     plt.savefig(pngname, dpi=150)
     plt.close()
     print(f"src/polygon.py :: Successfully created projection chart {pngname}")
-
-def getOptionSymbols(ticker, expiration_date, price):
-    closest_strike = round(price)
-    closest_strike_str = f"{int(closest_strike * 1000):08d}"
-    expiration_dt = datetime.strptime(expiration_date, "%Y-%m-%d")
-    expiration_str = expiration_dt.strftime("%y%m%d")
-    option_symbolc = f"{ticker}{expiration_str}C{closest_strike_str}"
-    option_symbolp = f"{ticker}{expiration_str}P{closest_strike_str}"
-    return option_symbolc, option_symbolp
 
 if __name__ == "__main__":
     pass
